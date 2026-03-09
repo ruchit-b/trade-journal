@@ -1,0 +1,73 @@
+// TradeEdge – Prisma schema for PostgreSQL
+// Computed fields (pnl, riskReward, outcome) are derived in application logic
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String
+  plan            String    @default("free") // 'free' | 'pro'
+  password        String
+  portfolioAmount Decimal?  @db.Decimal(18, 2)
+  createdAt       DateTime  @default(now())
+
+  trades     Trade[]
+  importLogs ImportLog[]
+
+  @@map("users")
+}
+
+model Trade {
+  id              String    @id @default(cuid())
+  userId          String
+  symbol          String
+  direction       String    // 'long' | 'short'
+  entryPrice      Decimal   @db.Decimal(18, 4)
+  exitPrice       Decimal?  @db.Decimal(18, 4)
+  quantity        Int
+  entryDate       DateTime
+  exitDate        DateTime?
+  stopLoss        Decimal   @db.Decimal(18, 4)
+  target          Decimal   @db.Decimal(18, 4)
+  setupType       String
+  sector          String
+  notes           String    @default("")
+  screenshotUrl   String?
+  pnl             Decimal?  @db.Decimal(18, 4)
+  riskReward      Decimal?  @db.Decimal(18, 4)
+  outcome         String?   // 'open' | 'win' | 'loss' | 'breakeven'; null for open/legacy
+  marketPulse     String?   // 'Trending' | 'Volatile/Chippy' | 'Sideways' | 'Correction'
+  executionErrors String[]  @default([])
+  exitReason      String?   // 'Hit SL' | 'Hit Target' | 'Time Stop' | 'Market Weakness' | 'Emotional Exit'
+  executionGrade  String?   // 'Followed plan' | 'Slight deviation' | 'Luck/Random' | 'Broke rules'
+  createdAt       DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, entryDate])
+  @@index([symbol])
+  @@map("trades")
+}
+
+model ImportLog {
+  id         String   @id @default(cuid())
+  userId     String
+  broker     String   // 'zerodha' | 'upstox' | 'manual'
+  filename   String
+  tradeCount Int
+  importedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("import_logs")
+}
