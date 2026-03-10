@@ -322,21 +322,6 @@ export async function deleteAccount(req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const { deleteFile } = await import('../utils/storage');
-    const tradesWithScreenshots = await prisma.trade.findMany({
-      where: { userId, screenshotUrl: { not: null } },
-      select: { screenshotUrl: true },
-    });
-    for (const t of tradesWithScreenshots) {
-      if (t.screenshotUrl) {
-        try {
-          await deleteFile(t.screenshotUrl);
-        } catch (e) {
-          console.warn('Failed to delete screenshot during account deletion:', e);
-        }
-      }
-    }
-
     await prisma.user.delete({ where: { id: userId } });
 
     res.status(200).json({

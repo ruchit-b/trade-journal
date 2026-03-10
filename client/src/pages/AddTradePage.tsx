@@ -34,7 +34,6 @@ function buildPayload(data: TradeFormValues) {
       setupType: data.setupType === 'Other' ? (data.setupTypeOther?.trim() || 'Other') : data.setupType.trim(),
     }),
     ...(data.notes?.trim() && { notes: data.notes.trim() }),
-    ...(data.screenshotUrl != null && data.screenshotUrl !== '' && { screenshotUrl: data.screenshotUrl.trim() }),
     ...(data.marketPulse?.trim() && { marketPulse: data.marketPulse.trim() }),
     ...(Array.isArray(data.executionErrors) && data.executionErrors.length > 0 && { executionErrors: data.executionErrors }),
     ...(data.exitReason?.trim() && { exitReason: data.exitReason.trim() }),

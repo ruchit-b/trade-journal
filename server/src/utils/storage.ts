@@ -38,7 +38,7 @@ function safeFilename(original: string): string {
 /**
  * Upload a file. Returns the public URL.
  * - If R2 env vars are set: uploads to R2 bucket, returns CLOUDFLARE_R2_PUBLIC_URL/key.
- * - Otherwise: saves to server/uploads/, returns BASE_URL/uploads/filename.
+ * - Otherwise: saves to server/uploads/, returns path /uploads/key so the client loads from its own origin (works with dev proxy and same-host production).
  */
 export async function uploadFile(
   buffer: Buffer,
@@ -64,13 +64,13 @@ export async function uploadFile(
   const dir = path.dirname(localPath);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(localPath, buffer);
-  return `${BASE_URL}/uploads/${key}`;
+  return `/uploads/${key}`;
 }
 
 /**
  * Delete a file by its public URL.
  * - R2: parses key from URL (r2PublicUrl/key).
- * - Local: parses path from URL (BASE_URL/uploads/... -> uploads/...).
+ * - Local: accepts /uploads/... or BASE_URL/uploads/..., parses to uploads/... path.
  */
 export async function deleteFile(url: string): Promise<void> {
   if (!url || typeof url !== 'string') return;
@@ -85,9 +85,15 @@ export async function deleteFile(url: string): Promise<void> {
     return;
   }
 
-  const prefix = `${BASE_URL}/uploads/`;
-  if (url.startsWith(prefix)) {
-    const relativePath = url.slice(prefix.length);
+  const pathPrefix = '/uploads/';
+  const fullUrlPrefix = `${BASE_URL}/uploads/`;
+  let relativePath: string | null = null;
+  if (url.startsWith(pathPrefix)) {
+    relativePath = url.slice(pathPrefix.length);
+  } else if (url.startsWith(fullUrlPrefix)) {
+    relativePath = url.slice(fullUrlPrefix.length);
+  }
+  if (relativePath) {
     const localPath = path.join(UPLOADS_DIR, relativePath);
     if (fs.existsSync(localPath)) {
       fs.unlinkSync(localPath);

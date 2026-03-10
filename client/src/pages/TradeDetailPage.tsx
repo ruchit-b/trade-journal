@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/Badge';
 import { formatCurrency, formatCurrencyWhole, formatDateShort, formatRMultiple } from '@/lib/format';
 import type { Trade } from '@/types/trade';
 import type { DashboardStats } from '@/types/dashboard';
-import { ArrowLeft, Pencil, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -83,7 +83,6 @@ export function TradeDetailPage() {
   const queryClient = useQueryClient();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const { data: trade, isLoading, error, refetch } = useQuery({
     queryKey: ['trade', id],
@@ -461,35 +460,6 @@ export function TradeDetailPage() {
             </div>
 
             <aside className="space-y-6 lg:max-w-[340px]">
-              {/* Chart screenshot + lightbox — only when screenshot exists */}
-              {trade.screenshotUrl && (
-                <Card className="overflow-hidden border-border bg-surface">
-                  <CardBody className="p-0">
-                    <button
-                      type="button"
-                      className="block w-full text-left focus:outline-none focus:ring-2 focus:ring-accent focus:ring-inset rounded-t-lg overflow-hidden"
-                      onClick={() => setLightboxOpen(true)}
-                      aria-label="Open chart in lightbox"
-                    >
-                      <img
-                        src={trade.screenshotUrl}
-                        alt="Trade chart"
-                        className="w-full h-auto object-cover cursor-pointer transition-opacity hover:opacity-90"
-                      />
-                    </button>
-                    <div className="border-t border-border px-4 py-2.5">
-                      <button
-                        type="button"
-                        className="text-xs font-medium text-accent hover:underline"
-                        onClick={() => setLightboxOpen(true)}
-                      >
-                        View full size
-                      </button>
-                    </div>
-                  </CardBody>
-                </Card>
-              )}
-
               <div className="flex flex-col gap-2">
                 <Link to={`/trades/${id}/edit`} className="block">
                   <Button
@@ -560,32 +530,6 @@ export function TradeDetailPage() {
           </div>
         </div>
       </div>
-
-      {/* Lightbox */}
-      {lightboxOpen && trade.screenshotUrl && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-base/90 backdrop-blur-sm p-4"
-          onClick={() => setLightboxOpen(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Chart full size"
-        >
-          <button
-            type="button"
-            className="absolute top-4 right-4 rounded-full bg-elevated/90 p-2.5 text-text-primary hover:bg-elevated focus:outline-none focus:ring-2 focus:ring-accent transition-colors"
-            onClick={() => setLightboxOpen(false)}
-            aria-label="Close"
-          >
-            <X className="h-5 w-5" />
-          </button>
-          <img
-            src={trade.screenshotUrl}
-            alt="Trade chart"
-            className="max-h-[90vh] max-w-full rounded-lg object-contain shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
 
       {/* Delete confirm */}
       {deleteOpen && (

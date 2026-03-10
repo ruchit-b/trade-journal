@@ -18,7 +18,6 @@ import {
   EXIT_REASON_OPTIONS,
   EXECUTION_GRADE_OPTIONS,
 } from './constants';
-import { ScreenshotUpload } from './ScreenshotUpload';
 
 const tradeSchema = z
   .object({
@@ -36,7 +35,6 @@ const tradeSchema = z
     exitReason: z.string().optional().nullable(),
     executionGrade: z.string().optional().nullable(),
     notes: z.string().max(1000, 'Max 1000 characters').optional(),
-    screenshotUrl: z.string().max(2000).optional().nullable(),
     marketPulse: z.string().optional().nullable(),
     executionErrors: z.array(z.string()).optional().default([]),
   })
@@ -107,7 +105,6 @@ export function TradeForm({
       notes: '',
       exitPrice: '',
       exitDate: '',
-      screenshotUrl: null as string | null,
       marketPulse: defaultValues?.marketPulse ?? null,
       executionErrors: defaultValues?.executionErrors ?? [],
       ...defaultValues,
@@ -486,15 +483,6 @@ export function TradeForm({
                   {(watch('notes') ?? '').length}/1000
                 </p>
                 {errors.notes && <p className="mt-1 text-sm text-loss">{errors.notes.message}</p>}
-              </div>
-
-              <div>
-                <FormLabel>Chart screenshot</FormLabel>
-                <ScreenshotUpload
-                  screenshotUrl={watch('screenshotUrl') ?? null}
-                  onUpload={(url) => setValue('screenshotUrl', url, { shouldValidate: true })}
-                  onRemove={() => setValue('screenshotUrl', null, { shouldValidate: true })}
-                />
               </div>
             </div>
           </div>

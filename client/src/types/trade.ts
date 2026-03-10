@@ -16,7 +16,6 @@ export interface Trade {
   target: number;
   setupType: string | null;
   notes: string;
-  screenshotUrl: string | null;
   pnl: number | null;
   riskReward: number | null;
   outcome: TradeOutcome | null;

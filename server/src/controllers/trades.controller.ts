@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { body, query, param, ValidationChain } from 'express-validator';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { computeTradeFields } from '../utils/trade.utils';
-import { deleteFile } from '../utils/storage';
 
 const prisma = new PrismaClient();
 
@@ -88,7 +87,6 @@ export const createTradeValidations: ValidationChain[] = [
   body('exitDate').optional().isISO8601().withMessage('Exit date must be a valid ISO date'),
   body('setupType').optional().trim().isLength({ max: 100 }).withMessage('Setup type too long'),
   body('notes').optional().trim().isLength({ max: 5000 }).withMessage('Notes too long'),
-  body('screenshotUrl').optional().trim().isLength({ max: 2000 }).withMessage('Screenshot URL too long'),
   body('marketPulse')
     .optional()
     .custom((v) => v == null || v === '' || MARKET_PULSE_VALUES.includes(v as (typeof MARKET_PULSE_VALUES)[number]))
@@ -125,7 +123,6 @@ export async function createTrade(req: Request, res: Response): Promise<void> {
     if (exitPrice != null && exitDate == null) exitDate = entryDate;
     const setupType = (b.setupType != null && String(b.setupType).trim()) ? String(b.setupType).trim() : null;
     const notes = (b.notes != null) ? String(b.notes).trim() : '';
-    const screenshotUrl = (b.screenshotUrl != null && String(b.screenshotUrl).trim()) ? String(b.screenshotUrl).trim() : null;
     const marketPulse = b.marketPulse != null && String(b.marketPulse).trim() && MARKET_PULSE_VALUES.includes(b.marketPulse as typeof MARKET_PULSE_VALUES[number])
       ? (b.marketPulse as string)
       : null;
@@ -160,7 +157,6 @@ export async function createTrade(req: Request, res: Response): Promise<void> {
         target: new Prisma.Decimal(target),
         setupType,
         notes,
-        screenshotUrl,
         marketPulse,
         executionErrors,
         exitReason,
@@ -314,7 +310,6 @@ export const updateTradeValidations: ValidationChain[] = [
   body('target').optional().toFloat().isFloat({ min: 0 }),
   body('setupType').optional().trim(),
   body('notes').optional().trim(),
-  body('screenshotUrl').optional().trim(),
   body('marketPulse')
     .optional()
     .custom((v) => v == null || v === '' || MARKET_PULSE_VALUES.includes(v as (typeof MARKET_PULSE_VALUES)[number])),
@@ -378,7 +373,6 @@ export async function updateTrade(req: Request, res: Response): Promise<void> {
         setupType: String(b.setupType ?? '').trim() ? String(b.setupType).trim() : null,
       }),
       ...(b.notes !== undefined && { notes: String(b.notes).trim() }),
-      ...(b.screenshotUrl !== undefined && { screenshotUrl: b.screenshotUrl ? String(b.screenshotUrl).trim() : null }),
       ...(b.marketPulse !== undefined && {
         marketPulse: b.marketPulse != null && String(b.marketPulse).trim() && MARKET_PULSE_VALUES.includes(b.marketPulse as typeof MARKET_PULSE_VALUES[number])
           ? String(b.marketPulse).trim()
@@ -443,14 +437,6 @@ export async function deleteTrade(req: Request, res: Response): Promise<void> {
         error: 'Trade not found.',
       });
       return;
-    }
-
-    if (existing.screenshotUrl) {
-      try {
-        await deleteFile(existing.screenshotUrl);
-      } catch (e) {
-        console.warn('Failed to delete trade screenshot file:', e);
-      }
     }
 
     await prisma.trade.delete({
@@ -631,7 +617,6 @@ function serializeTrade(t: {
   target: Prisma.Decimal;
   setupType: string;
   notes: string;
-  screenshotUrl: string | null;
   pnl: Prisma.Decimal | null;
   riskReward: Prisma.Decimal | null;
   outcome: string | null;
@@ -655,7 +640,6 @@ function serializeTrade(t: {
     target: Number(t.target),
     setupType: t.setupType,
     notes: t.notes,
-    screenshotUrl: t.screenshotUrl,
     pnl: t.pnl != null ? Number(t.pnl) : null,
     riskReward: t.riskReward != null
       ? Number(t.riskReward)
