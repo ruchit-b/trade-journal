@@ -615,7 +615,7 @@ function serializeTrade(t: {
   exitDate: Date | null;
   stopLoss: Prisma.Decimal;
   target: Prisma.Decimal;
-  setupType: string;
+  setupType: string | null;
   notes: string;
   pnl: Prisma.Decimal | null;
   riskReward: Prisma.Decimal | null;
