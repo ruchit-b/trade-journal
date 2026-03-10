@@ -398,7 +398,7 @@ export function SettingsPage() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-loss">Danger zone</p>
                       <p className="mt-1 text-sm text-text-secondary">
-                        Permanently delete your account and all trades, imports and uploaded files. This cannot be undone.
+                        Permanently delete your account and all trades and uploaded files. This cannot be undone.
                       </p>
                       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                         <Button
@@ -426,7 +426,7 @@ export function SettingsPage() {
             <CardBody className="space-y-4">
               <h3 className="font-semibold text-text-primary">Delete your account?</h3>
               <p className="text-sm text-text-secondary">
-                This will permanently delete all your trades, imports and uploaded files. Type{' '}
+                This will permanently delete all your trades and uploaded files. Type{' '}
                 <strong className="text-loss">DELETE</strong> to confirm.
               </p>
               <input

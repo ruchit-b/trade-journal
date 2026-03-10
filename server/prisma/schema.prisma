@@ -20,7 +20,6 @@ model User {
   createdAt       DateTime  @default(now())
 
   trades     Trade[]
-  importLogs ImportLog[]
 
   @@map("users")
 }
@@ -57,16 +56,3 @@ model Trade {
   @@map("trades")
 }
 
-model ImportLog {
-  id         String   @id @default(cuid())
-  userId     String
-  broker     String   // 'zerodha' | 'upstox' | 'manual'
-  filename   String
-  tradeCount Int
-  importedAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@map("import_logs")
-}

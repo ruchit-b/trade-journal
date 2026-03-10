@@ -6,7 +6,6 @@ import path from 'path';
 import rateLimit from 'express-rate-limit';
 import authRoutes from './routes/auth.routes';
 import tradesRoutes from './routes/trades.routes';
-import importRoutes from './routes/import.routes';
 import uploadsRoutes from './routes/uploads.routes';
 
 const CLIENT_URL = process.env.CLIENT_URL ?? 'http://localhost:5173';
@@ -39,7 +38,6 @@ app.get('/health', (_req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/trades', tradesRoutes);
-app.use('/api/import', importRoutes);
 app.use('/api/uploads', uploadsRoutes);
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 

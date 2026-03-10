@@ -4,7 +4,7 @@ Swing trade journal for NSE/BSE (Indian stock market) traders.
 
 ## Structure
 
-- **client/** – React + Vite frontend (Tailwind, React Router, TanStack Query, Recharts, etc.)
+- **client/** – React + Vite frontend (Tailwind, React Router, TanStack Query, etc.)
 - **server/** – Node.js + Express + Prisma backend (PostgreSQL, JWT auth)
 - **shared/** – Shared TypeScript types
 

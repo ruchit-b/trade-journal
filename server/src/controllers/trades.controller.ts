@@ -553,64 +553,6 @@ export async function getDashboardStats(req: Request, res: Response): Promise<vo
       }
     }
 
-    const now = new Date();
-    const monthMap = new Map<string, { pnl: number; count: number }>();
-    for (let i = 0; i < 12; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = d.toLocaleString('en-US', { month: 'short', year: '2-digit' });
-      monthMap.set(key, { pnl: 0, count: 0 });
-    }
-    for (const t of withPnl) {
-      if (!t.exitDate) continue;
-      const key = new Date(t.exitDate).toLocaleString('en-US', { month: 'short', year: '2-digit' });
-      const cell = monthMap.get(key);
-      if (cell) {
-        cell.pnl += Number(t.pnl);
-        cell.count += 1;
-      }
-    }
-    const pnlByMonth = Array.from(monthMap.entries())
-      .map(([month, cell]) => ({ month, pnl: cell.pnl, count: cell.count }))
-      .reverse();
-
-    const setupMap = new Map<string, { wins: number; total: number; pnlSum: number; maxPnl: number }>();
-    for (const t of closed) {
-      const st = (t.setupType && String(t.setupType).trim()) ? String(t.setupType).trim() : 'Unspecified';
-      if (!setupMap.has(st)) setupMap.set(st, { wins: 0, total: 0, pnlSum: 0, maxPnl: -Infinity });
-      const rec = setupMap.get(st)!;
-      rec.total++;
-      if (t.outcome === 'win') rec.wins++;
-      const pnlVal = t.pnl != null ? Number(t.pnl) : 0;
-      rec.pnlSum += pnlVal;
-      if (t.pnl != null && pnlVal > rec.maxPnl) rec.maxPnl = pnlVal;
-    }
-    const pnlBySetup = Array.from(setupMap.entries()).map(([setupType, rec]) => ({
-      setupType,
-      winRate: rec.total > 0 ? (rec.wins / rec.total) * 100 : 0,
-      avgPnl: rec.total > 0 ? rec.pnlSum / rec.total : 0,
-      count: rec.total,
-      totalPnl: rec.pnlSum,
-      bestTrade: rec.maxPnl === -Infinity ? 0 : rec.maxPnl,
-    }));
-
-    const marketPulseMap = new Map<string, { wins: number; total: number }>();
-    for (const t of closed) {
-      const mp = t.marketPulse ?? 'Unknown';
-      if (!marketPulseMap.has(mp)) marketPulseMap.set(mp, { wins: 0, total: 0 });
-      const rec = marketPulseMap.get(mp)!;
-      rec.total++;
-      if (t.outcome === 'win') rec.wins++;
-    }
-    const winRateByMarketPulse = Array.from(marketPulseMap.entries())
-      .filter(([mp]) => mp !== 'Unknown')
-      .map(([marketPulse, rec]) => ({
-        marketPulse,
-        wins: rec.wins,
-        total: rec.total,
-        winRate: rec.total > 0 ? (rec.wins / rec.total) * 100 : 0,
-      }))
-      .sort((a, b) => b.total - a.total);
-
     // Expectancy: (Win% * Avg Win) - (Loss% * Avg Loss)
     const winLossTotal = wins.length + losses.length;
     const sumWinPnl = wins.reduce((s, t) => s + (t.pnl != null ? Number(t.pnl) : 0), 0);
@@ -633,47 +575,6 @@ export async function getDashboardStats(req: Request, res: Response): Promise<vo
       const dd = peak - running;
       if (dd > maxDrawdown) maxDrawdown = dd;
     }
-
-    // Equity curve by Day, Week, Month, Year
-    const dayMap = new Map<string, number>();
-    const weekMap = new Map<string, number>();
-    const yearMap = new Map<string, number>();
-    for (const t of withPnl) {
-      if (!t.exitDate) continue;
-      const d = new Date(t.exitDate);
-      const dayKey = d.toISOString().slice(0, 10);
-      dayMap.set(dayKey, (dayMap.get(dayKey) ?? 0) + Number(t.pnl));
-      const weekStart = new Date(d);
-      weekStart.setDate(d.getDate() - d.getDay());
-      weekStart.setHours(0, 0, 0, 0);
-      const weekKey = weekStart.toISOString().slice(0, 10);
-      weekMap.set(weekKey, (weekMap.get(weekKey) ?? 0) + Number(t.pnl));
-      const yearKey = String(d.getFullYear());
-      yearMap.set(yearKey, (yearMap.get(yearKey) ?? 0) + Number(t.pnl));
-    }
-    const sortedDays = Array.from(dayMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-    const sortedWeeks = Array.from(weekMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-    const sortedYears = Array.from(yearMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-    let cumDay = 0;
-    const equityCurveDaily = sortedDays.map(([period, pnl]) => {
-      cumDay += pnl;
-      return { period, cumulative: cumDay };
-    });
-    let cumWeek = 0;
-    const equityCurveWeekly = sortedWeeks.map(([period, pnl]) => {
-      cumWeek += pnl;
-      return { period, cumulative: cumWeek };
-    });
-    let cumMonth = 0;
-    const equityCurveMonthly = pnlByMonth.map(({ month, pnl }) => {
-      cumMonth += pnl;
-      return { period: month, cumulative: cumMonth };
-    });
-    let cumYear = 0;
-    const equityCurveYearly = sortedYears.map(([period, pnl]) => {
-      cumYear += pnl;
-      return { period, cumulative: cumYear };
-    });
 
     // Average holding time (closed trades with exitDate)
     const holdingTimesMs = closed
@@ -703,13 +604,6 @@ export async function getDashboardStats(req: Request, res: Response): Promise<vo
         maxDrawdown,
         avgHoldingTimeHours,
         avgHoldingTimeDays,
-        equityCurveDaily,
-        equityCurveWeekly,
-        equityCurveMonthly,
-        equityCurveYearly,
-        pnlByMonth,
-        pnlBySetup,
-        winRateByMarketPulse,
       },
     });
   } catch (err) {

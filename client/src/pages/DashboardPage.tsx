@@ -107,7 +107,7 @@ function EmptyDashboard() {
           </div>
           <h2 className="text-lg font-semibold text-text-primary">No trades yet</h2>
           <p className="mt-1 text-sm text-text-secondary">
-            Start by adding your first trade to see your stats and equity curve here.
+            Start by adding your first trade to see your stats here.
           </p>
           <Link to="/trades/new" className="mt-6 inline-block">
             <Button variant="primary" size="md">Add your first trade</Button>
@@ -298,14 +298,6 @@ export function DashboardPage() {
                 {[1, 2, 3, 4].map((i) => (
                   <StatCardSkeleton key={i} />
                 ))}
-              </div>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                <Skeleton className="h-80 lg:col-span-2" />
-                <Skeleton className="h-80" />
-              </div>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <Skeleton className="h-72" />
-                <Skeleton className="h-72" />
               </div>
             </div>
           )}
