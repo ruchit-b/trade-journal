@@ -48,3 +48,11 @@ export function formatDateShort(date: string | Date | null | undefined): string 
   if (Number.isNaN(d.getTime())) return '—';
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
 }
+
+/** R-multiple for closed trades: e.g. "+2.5R", "-0.8R". Returns null when not applicable. */
+export function formatRMultiple(pnl: number | null, initialRiskInr: number): string | null {
+  if (pnl == null || initialRiskInr <= 0) return null;
+  const r = pnl / initialRiskInr;
+  const sign = r >= 0 ? '+' : '';
+  return `${sign}${r.toFixed(1)}R`;
+}

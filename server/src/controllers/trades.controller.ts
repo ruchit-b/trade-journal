@@ -74,7 +74,7 @@ function handleError(res: Response, err: unknown, fallbackMessage: string): void
 }
 
 // ---- createTrade ----
-// Defaults when omitted: direction=long, target=0, setupType/sector='Unknown', notes='', executionErrors=[]
+// Defaults when omitted: direction=long, target=0, setupType=null, notes='', executionErrors=[]
 
 export const createTradeValidations: ValidationChain[] = [
   body('symbol').trim().isLength({ min: 1, max: 20 }).withMessage('Symbol must be 1–20 characters'),
@@ -87,7 +87,6 @@ export const createTradeValidations: ValidationChain[] = [
   body('exitPrice').optional().toFloat().isFloat({ min: 0 }).withMessage('Exit price must be a positive number'),
   body('exitDate').optional().isISO8601().withMessage('Exit date must be a valid ISO date'),
   body('setupType').optional().trim().isLength({ max: 100 }).withMessage('Setup type too long'),
-  body('sector').optional().trim().isLength({ max: 100 }).withMessage('Sector too long'),
   body('notes').optional().trim().isLength({ max: 5000 }).withMessage('Notes too long'),
   body('screenshotUrl').optional().trim().isLength({ max: 2000 }).withMessage('Screenshot URL too long'),
   body('marketPulse')
@@ -124,8 +123,7 @@ export async function createTrade(req: Request, res: Response): Promise<void> {
     let exitDate = b.exitDate != null && b.exitDate !== '' ? new Date(b.exitDate as string) : null;
     // When closing a trade (exitPrice set), default exitDate to entryDate so analytics have a date
     if (exitPrice != null && exitDate == null) exitDate = entryDate;
-    const setupType = (b.setupType != null && String(b.setupType).trim()) ? String(b.setupType).trim() : 'Unknown';
-    const sector = (b.sector != null && String(b.sector).trim()) ? String(b.sector).trim() : 'Unknown';
+    const setupType = (b.setupType != null && String(b.setupType).trim()) ? String(b.setupType).trim() : null;
     const notes = (b.notes != null) ? String(b.notes).trim() : '';
     const screenshotUrl = (b.screenshotUrl != null && String(b.screenshotUrl).trim()) ? String(b.screenshotUrl).trim() : null;
     const marketPulse = b.marketPulse != null && String(b.marketPulse).trim() && MARKET_PULSE_VALUES.includes(b.marketPulse as typeof MARKET_PULSE_VALUES[number])
@@ -161,7 +159,6 @@ export async function createTrade(req: Request, res: Response): Promise<void> {
         stopLoss: new Prisma.Decimal(stopLoss),
         target: new Prisma.Decimal(target),
         setupType,
-        sector,
         notes,
         screenshotUrl,
         marketPulse,
@@ -195,7 +192,6 @@ export const getTradesValidations: ValidationChain[] = [
   query('symbol').optional().trim().isLength({ max: 20 }),
   query('outcome').optional().isIn(OUTCOME_VALUES),
   query('setupType').optional().trim(),
-  query('sector').optional().trim(),
   query('direction').optional().isIn(DIRECTION_VALUES),
   query('dateFrom').optional().isISO8601(),
   query('dateTo').optional().isISO8601(),
@@ -222,9 +218,6 @@ export async function getTrades(req: Request, res: Response): Promise<void> {
     }
     if (req.query.setupType && String(req.query.setupType).trim()) {
       where.setupType = String(req.query.setupType).trim();
-    }
-    if (req.query.sector && String(req.query.sector).trim()) {
-      where.sector = String(req.query.sector).trim();
     }
     if (req.query.direction && DIRECTION_VALUES.includes(req.query.direction as typeof DIRECTION_VALUES[number])) {
       where.direction = req.query.direction as string;
@@ -320,7 +313,6 @@ export const updateTradeValidations: ValidationChain[] = [
   body('stopLoss').optional().toFloat().isFloat({ min: 0 }),
   body('target').optional().toFloat().isFloat({ min: 0 }),
   body('setupType').optional().trim(),
-  body('sector').optional().trim(),
   body('notes').optional().trim(),
   body('screenshotUrl').optional().trim(),
   body('marketPulse')
@@ -382,8 +374,9 @@ export async function updateTrade(req: Request, res: Response): Promise<void> {
       exitDate: b.exitDate !== undefined ? (b.exitDate == null || b.exitDate === '' ? null : new Date(b.exitDate as string)) : undefined,
       ...(b.stopLoss !== undefined && { stopLoss: new Prisma.Decimal(stopLoss) }),
       ...(b.target !== undefined && { target: new Prisma.Decimal(target) }),
-      ...(b.setupType !== undefined && { setupType: String(b.setupType).trim() }),
-      ...(b.sector !== undefined && { sector: String(b.sector).trim() }),
+      ...(b.setupType !== undefined && {
+        setupType: String(b.setupType ?? '').trim() ? String(b.setupType).trim() : null,
+      }),
       ...(b.notes !== undefined && { notes: String(b.notes).trim() }),
       ...(b.screenshotUrl !== undefined && { screenshotUrl: b.screenshotUrl ? String(b.screenshotUrl).trim() : null }),
       ...(b.marketPulse !== undefined && {
@@ -582,7 +575,7 @@ export async function getDashboardStats(req: Request, res: Response): Promise<vo
 
     const setupMap = new Map<string, { wins: number; total: number; pnlSum: number; maxPnl: number }>();
     for (const t of closed) {
-      const st = t.setupType || 'Unknown';
+      const st = (t.setupType && String(t.setupType).trim()) ? String(t.setupType).trim() : 'Unspecified';
       if (!setupMap.has(st)) setupMap.set(st, { wins: 0, total: 0, pnlSum: 0, maxPnl: -Infinity });
       const rec = setupMap.get(st)!;
       rec.total++;
@@ -598,23 +591,6 @@ export async function getDashboardStats(req: Request, res: Response): Promise<vo
       count: rec.total,
       totalPnl: rec.pnlSum,
       bestTrade: rec.maxPnl === -Infinity ? 0 : rec.maxPnl,
-    }));
-
-    const sectorMap = new Map<string, { pnl: number; count: number; wins: number }>();
-    for (const t of closed) {
-      const sec = t.sector || 'Unknown';
-      if (!sectorMap.has(sec)) sectorMap.set(sec, { pnl: 0, count: 0, wins: 0 });
-      const rec = sectorMap.get(sec)!;
-      rec.count++;
-      if (t.pnl != null) rec.pnl += Number(t.pnl);
-      if (t.outcome === 'win') rec.wins++;
-    }
-    const pnlBySector = Array.from(sectorMap.entries()).map(([sector, rec]) => ({
-      sector,
-      pnl: rec.pnl,
-      count: rec.count,
-      winRate: rec.count > 0 ? (rec.wins / rec.count) * 100 : 0,
-      avgPnl: rec.count > 0 ? rec.pnl / rec.count : 0,
     }));
 
     const marketPulseMap = new Map<string, { wins: number; total: number }>();
@@ -733,7 +709,6 @@ export async function getDashboardStats(req: Request, res: Response): Promise<vo
         equityCurveYearly,
         pnlByMonth,
         pnlBySetup,
-        pnlBySector,
         winRateByMarketPulse,
       },
     });
@@ -761,7 +736,6 @@ function serializeTrade(t: {
   stopLoss: Prisma.Decimal;
   target: Prisma.Decimal;
   setupType: string;
-  sector: string;
   notes: string;
   screenshotUrl: string | null;
   pnl: Prisma.Decimal | null;
@@ -786,7 +760,6 @@ function serializeTrade(t: {
     stopLoss: Number(t.stopLoss),
     target: Number(t.target),
     setupType: t.setupType,
-    sector: t.sector,
     notes: t.notes,
     screenshotUrl: t.screenshotUrl,
     pnl: t.pnl != null ? Number(t.pnl) : null,

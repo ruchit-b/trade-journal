@@ -33,9 +33,6 @@ function buildPayload(data: TradeFormValues) {
     ...(data.setupType?.trim() && {
       setupType: data.setupType === 'Other' ? (data.setupTypeOther?.trim() || 'Other') : data.setupType.trim(),
     }),
-    ...(data.sector?.trim() && {
-      sector: data.sector === 'Other' ? (data.sectorOther?.trim() || 'Other') : data.sector.trim(),
-    }),
     ...(data.notes?.trim() && { notes: data.notes.trim() }),
     ...(data.screenshotUrl != null && data.screenshotUrl !== '' && { screenshotUrl: data.screenshotUrl.trim() }),
     ...(data.marketPulse?.trim() && { marketPulse: data.marketPulse.trim() }),

@@ -141,7 +141,7 @@ export function RegisterPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3 bg-accent text-base font-semibold text-[#0a0a0f] rounded-md hover:bg-accent/90
+              className="w-full py-3 bg-accent text-base font-semibold text-accent-foreground rounded-md hover:bg-accent/90
                 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface
                 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2"
             >

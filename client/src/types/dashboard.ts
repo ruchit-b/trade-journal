@@ -20,6 +20,5 @@ export interface DashboardStats {
   equityCurveYearly: { period: string; cumulative: number }[];
   pnlByMonth: { month: string; pnl: number; count: number }[];
   pnlBySetup: { setupType: string; winRate: number; avgPnl: number; count: number; totalPnl: number; bestTrade: number }[];
-  pnlBySector: { sector: string; pnl: number; count: number; winRate: number; avgPnl: number }[];
   winRateByMarketPulse: { marketPulse: string; wins: number; total: number; winRate: number }[];
 }

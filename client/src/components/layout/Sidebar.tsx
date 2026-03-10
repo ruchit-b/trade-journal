@@ -4,8 +4,6 @@ import {
   LayoutDashboard,
   ListOrdered,
   PlusCircle,
-  BarChart2,
-  Upload,
   Settings,
   LogOut,
   ChevronLeft,
@@ -20,8 +18,6 @@ const NAV_ITEMS: { to: string; icon: LucideIcon; label: string }[] = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/trades', icon: ListOrdered, label: 'Trade Log' },
   { to: '/trades/new', icon: PlusCircle, label: 'Add Trade' },
-  { to: '/analytics', icon: BarChart2, label: 'Setup Analyzer' },
-  { to: '/import', icon: Upload, label: 'Import' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 

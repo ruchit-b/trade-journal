@@ -14,8 +14,7 @@ export interface Trade {
   exitDate: string | null;
   stopLoss: number;
   target: number;
-  setupType: string;
-  sector: string;
+  setupType: string | null;
   notes: string;
   screenshotUrl: string | null;
   pnl: number | null;

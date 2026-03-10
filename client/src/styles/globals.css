@@ -11,6 +11,7 @@
   --accent: #00c896;
   --accent-dim: #00c89620;
   --accent-border: #00c89666;
+  --accent-foreground: #0a0a0f;
   --text-primary: #eeeeee;
   --text-secondary: #aaaaaa;
   --text-muted: #999999;
@@ -19,11 +20,40 @@
   --warning: #f59e0b;
 }
 
+html[data-theme='light'] {
+  --bg-base: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f1f5f9;
+  --border: #cbd5e1;
+  --border-subtle: #e2e8f0;
+  --accent: #00a97d;
+  --accent-dim: rgba(0, 169, 125, 0.14);
+  --accent-border: rgba(0, 169, 125, 0.35);
+  --accent-foreground: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --profit: #00a97d;
+  --loss: #dc2626;
+  --warning: #d97706;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
   background-color: var(--bg-base);
   color: var(--text-primary);
+}
+
+/* Override browser autofill background so inputs stay dark */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 100vmax var(--bg-elevated) inset !important;
+  box-shadow: 0 0 0 100vmax var(--bg-elevated) inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  caret-color: var(--text-primary);
 }
 
 /* react-datepicker dark theme */

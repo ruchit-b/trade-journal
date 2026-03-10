@@ -25,10 +25,6 @@ export const SETUP_TYPE_OPTIONS = [
   'Other',
 ] as const;
 
-export const SECTOR_OPTIONS = [
-  'Nifty IT', 'Banking & Finance', 'FMCG', 'Auto', 'Pharma', 'Energy', 'Metals', 'Realty', 'Media', 'Telecom', 'Other',
-] as const;
-
 export const EXIT_REASON_OPTIONS = [
   'Hit SL',
   'Hit Target',

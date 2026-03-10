@@ -4,21 +4,25 @@ import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/contexts/AuthContext';
 import { patch, get, del } from '@/lib/api';
-import { SETUP_TYPE_OPTIONS } from '@/components/trades/constants';
+import { Download } from 'lucide-react';
+import { useTheme } from '@/contexts/ThemeContext';
 import type { User } from '@/lib/auth';
 import type { Trade } from '@/types/trade';
+import type { TradesResponse } from '@/types/trade';
 import toast from 'react-hot-toast';
 
-const PREF_BROKERAGE_KEY = 'tradeedge_default_brokerage';
-const PREF_BROKERAGE_TYPE_KEY = 'tradeedge_default_brokerage_type';
-const PREF_SETUPS_KEY = 'tradeedge_preferred_setups';
-
 type ApiProfileResponse = { success: boolean; data?: { user: User } };
-type ApiTradesResponse = { success: boolean; data?: { trades: Trade[] } };
+type ApiTradesResponse = { success: boolean; data?: TradesResponse };
 type ApiDeleteResponse = { success: boolean; data?: { message: string } };
+
+function formatInrWhole(value: number | null | undefined): string {
+  if (value == null) return '';
+  return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(value);
+}
 
 export function SettingsPage() {
   const { user, refreshUser, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [hasUnsaved, setHasUnsaved] = useState(false);
 
   const [name, setName] = useState('');
@@ -27,12 +31,8 @@ export function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
-
-  const [brokerageValue, setBrokerageValue] = useState('');
-  const [brokerageType, setBrokerageType] = useState<'inr' | 'pct'>('inr');
-  const [preferredSetups, setPreferredSetups] = useState<string[]>([]);
-  const [prefsSaving, setPrefsSaving] = useState(false);
 
   const [exportLoading, setExportLoading] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -44,24 +44,19 @@ export function SettingsPage() {
     if (user) {
       setName(user.name);
       setEmail(user.email);
-      setPortfolioAmount(user.portfolioAmount != null ? String(user.portfolioAmount) : '');
+      setPortfolioAmount(formatInrWhole(user.portfolioAmount));
     }
   }, [user]);
 
-  useEffect(() => {
-    try {
-      const v = localStorage.getItem(PREF_BROKERAGE_KEY);
-      const t = localStorage.getItem(PREF_BROKERAGE_TYPE_KEY) as 'inr' | 'pct' | null;
-      const s = localStorage.getItem(PREF_SETUPS_KEY);
-      if (v != null) setBrokerageValue(v);
-      if (t === 'inr' || t === 'pct') setBrokerageType(t);
-      if (s) setPreferredSetups(JSON.parse(s));
-    } catch {
-      // ignore
-    }
-  }, []);
-
   const markUnsaved = useCallback(() => setHasUnsaved(true), []);
+
+  const portfolioRaw = portfolioAmount.replace(/,/g, '').trim();
+  const portfolioNum = portfolioRaw === '' ? null : Number(portfolioRaw);
+  const portfolioValid = portfolioNum === null || Number.isFinite(portfolioNum);
+  const nameChanged = name.trim() !== user?.name;
+  const portfolioChanged = portfolioValid && portfolioNum !== (user?.portfolioAmount ?? null);
+  const wantsPasswordChange = passwordOpen && !!newPassword.trim();
+  const hasProfileChanges = !!user && (nameChanged || portfolioChanged || wantsPasswordChange);
 
   // Note: In-app navigation is not blocked when there are unsaved changes because useBlocker
   // requires a data router (createBrowserRouter). The beforeunload handler still warns on refresh/close.
@@ -78,10 +73,8 @@ export function SettingsPage() {
     if (!user) return;
     setProfileSaving(true);
     try {
-      const payload: { name?: string; email?: string; portfolioAmount?: number | null; currentPassword?: string; newPassword?: string } = {};
+      const payload: { name?: string; portfolioAmount?: number | null; currentPassword?: string; newPassword?: string } = {};
       if (name.trim() !== user.name) payload.name = name.trim();
-      if (email.trim().toLowerCase() !== user.email) payload.email = email.trim().toLowerCase();
-      const portfolioNum = portfolioAmount.trim() === '' ? null : Number(portfolioAmount);
       if (portfolioNum !== null && !Number.isFinite(portfolioNum)) {
         toast.error('Portfolio value must be a valid number.');
         setProfileSaving(false);
@@ -96,7 +89,7 @@ export function SettingsPage() {
       if (portfolioNum !== currentPortfolio) {
         payload.portfolioAmount = portfolioNum;
       }
-      if (newPassword.trim()) {
+      if (passwordOpen && newPassword.trim()) {
         if (newPassword.trim().length < 8) {
           toast.error('New password must be at least 8 characters.');
           setProfileSaving(false);
@@ -121,6 +114,7 @@ export function SettingsPage() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+      setPasswordOpen(false);
       setHasUnsaved(false);
       toast.success('Profile updated.');
     } catch (err: unknown) {
@@ -131,35 +125,22 @@ export function SettingsPage() {
     }
   };
 
-  const handlePrefsSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPrefsSaving(true);
-    try {
-      const num = brokerageValue.trim() === '' ? '' : String(Number(brokerageValue));
-      localStorage.setItem(PREF_BROKERAGE_KEY, num);
-      localStorage.setItem(PREF_BROKERAGE_TYPE_KEY, brokerageType);
-      localStorage.setItem(PREF_SETUPS_KEY, JSON.stringify(preferredSetups));
-      setHasUnsaved(false);
-      toast.success('Preferences saved.');
-    } catch {
-      toast.error('Failed to save preferences.');
-    } finally {
-      setPrefsSaving(false);
-    }
-  };
-
-  const toggleSetup = (setup: string) => {
-    setPreferredSetups((prev) =>
-      prev.includes(setup) ? prev.filter((s) => s !== setup) : [...prev, setup]
-    );
-    markUnsaved();
-  };
-
   const handleExportCsv = async () => {
     setExportLoading(true);
     try {
-      const res = await get<ApiTradesResponse>('/api/trades', { params: { limit: 1000 } });
-      const trades = res?.data?.trades ?? [];
+      const limit = 100;
+      let page = 1;
+      let totalPages = 1;
+      const trades: Trade[] = [];
+      do {
+        const res = await get<ApiTradesResponse>('/api/trades', {
+          params: { page, limit, sortBy: 'entryDate', sortOrder: 'desc' },
+        });
+        const batch = res?.data?.trades ?? [];
+        trades.push(...batch);
+        totalPages = res?.data?.totalPages ?? 1;
+        page += 1;
+      } while (page <= totalPages);
       const headers = [
         'Symbol',
         'Direction',
@@ -171,7 +152,6 @@ export function SettingsPage() {
         'P&L',
         'Outcome',
         'Setup Type',
-        'Sector',
         'Notes',
       ];
       const escape = (v: unknown) => {
@@ -189,8 +169,7 @@ export function SettingsPage() {
           t.exitDate?.slice(0, 10) ?? '',
           t.pnl ?? '',
           t.outcome ?? '',
-          t.setupType,
-          t.sector,
+          t.setupType ?? '',
           t.notes,
         ].map(escape)
       );
@@ -242,12 +221,37 @@ export function SettingsPage() {
     <>
       <PageHeader title="Settings" subtitle="Manage your account and preferences" />
       <div className="flex-1 overflow-auto p-6">
-        <div className="mx-auto max-w-2xl space-y-6">
-          {/* Profile */}
-          <Card>
-            <CardHeader title="Profile" subtitle="Update your name, email and password" />
-            <CardBody>
-              <form onSubmit={handleProfileSubmit} className="space-y-4">
+        <div className="mx-auto max-w-5xl">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
+            {/* Profile */}
+            <Card>
+              <CardHeader title="Profile" subtitle="Update your name and password" />
+              <CardBody>
+                <form onSubmit={handleProfileSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-text-secondary mb-1">Theme</label>
+                  <div className="flex w-full max-w-xs overflow-hidden rounded-full border border-border bg-elevated">
+                    {[
+                      { value: 'dark' as const, label: 'Dark' },
+                      { value: 'light' as const, label: 'Light' },
+                    ].map((opt) => {
+                      const active = theme === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setTheme(opt.value)}
+                          className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${
+                            active ? 'bg-accent text-accent-foreground' : 'text-text-muted hover:text-text-primary'
+                          }`}
+                          aria-pressed={active}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-text-secondary mb-1">Name</label>
                   <input
@@ -263,25 +267,25 @@ export function SettingsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-text-secondary mb-1">Email</label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value);
-                        markUnsaved();
-                      }}
-                      className="w-full rounded-md border border-border bg-elevated px-3 py-2 text-text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                    />
+                  <input
+                    type="email"
+                    value={email}
+                    readOnly
+                    className="w-full rounded-md border border-border bg-elevated px-3 py-2 text-text-muted cursor-not-allowed"
+                    aria-readonly="true"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-text-secondary mb-1">Portfolio value (₹)</label>
                   <input
-                    type="number"
-                    min={0}
-                    step={1}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9,]*"
                     value={portfolioAmount}
                     onChange={(e) => {
-                      setPortfolioAmount(e.target.value);
+                      const digits = e.target.value.replace(/[^\d]/g, '');
+                      const next = digits === '' ? '' : new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Number(digits));
+                      setPortfolioAmount(next);
                       markUnsaved();
                     }}
                     placeholder="e.g. 500000"
@@ -289,178 +293,129 @@ export function SettingsPage() {
                   />
                   <p className="mt-1 text-xs text-text-muted">Used for portfolio risk % on dashboard and trades.</p>
                 </div>
-                <div className="border-t border-border pt-4">
-                  <p className="text-sm font-medium text-text-secondary mb-2">Change password</p>
-                  <div className="space-y-2">
-                    <input
-                      type="password"
-                      placeholder="Current password"
-                      value={currentPassword}
-                      onChange={(e) => {
-                        setCurrentPassword(e.target.value);
-                        markUnsaved();
-                      }}
-                      className="w-full rounded-md border border-border bg-elevated px-3 py-2 text-text-primary placeholder-text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                    />
-                    <input
-                      type="password"
-                      placeholder="New password (min 8 characters)"
-                      value={newPassword}
-                      onChange={(e) => {
-                        setNewPassword(e.target.value);
-                        markUnsaved();
-                      }}
-                      className="w-full rounded-md border border-border bg-elevated px-3 py-2 text-text-primary placeholder-text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                    />
-                    <input
-                      type="password"
-                      placeholder="Confirm new password"
-                      value={confirmPassword}
-                      onChange={(e) => {
-                        setConfirmPassword(e.target.value);
-                        markUnsaved();
-                      }}
-                      className="w-full rounded-md border border-border bg-elevated px-3 py-2 text-text-primary placeholder-text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                    />
-                  </div>
-                </div>
-                <Button type="submit" variant="primary" loading={profileSaving} disabled={profileSaving}>
-                  Save Changes
-                </Button>
-              </form>
-            </CardBody>
-          </Card>
-
-          {/* Trading preferences */}
-          <Card>
-            <CardHeader title="Trading preferences" subtitle="Saved in this browser only" />
-            <CardBody>
-              <form onSubmit={handlePrefsSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-text-secondary mb-1">
-                    Default brokerage per trade
-                  </label>
-                  <div className="flex gap-2 items-center">
-                    <input
-                      type="number"
-                      min={0}
-                      step={brokerageType === 'pct' ? 0.1 : 1}
-                      value={brokerageValue}
-                      onChange={(e) => {
-                        setBrokerageValue(e.target.value);
-                        markUnsaved();
-                      }}
-                      placeholder={brokerageType === 'inr' ? 'e.g. 20' : 'e.g. 0.5'}
-                      className="flex-1 rounded-md border border-border bg-elevated px-3 py-2 text-text-primary placeholder-text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                    />
-                    <select
-                      value={brokerageType}
-                      onChange={(e) => {
-                        setBrokerageType(e.target.value as 'inr' | 'pct');
-                        markUnsaved();
-                      }}
-                      className="rounded-md border border-border bg-elevated px-3 py-2 text-text-primary focus:border-accent focus:outline-none"
-                    >
-                      <option value="inr">₹</option>
-                      <option value="pct">%</option>
-                    </select>
-                  </div>
+                  {passwordOpen && (
+                    <div className="space-y-2">
+                      <input
+                        type="password"
+                        placeholder="Current password"
+                        value={currentPassword}
+                        onChange={(e) => {
+                          setCurrentPassword(e.target.value);
+                          markUnsaved();
+                        }}
+                        className="w-full rounded-md border border-border bg-elevated px-3 py-2 text-text-primary placeholder-text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                      />
+                      <input
+                        type="password"
+                        placeholder="New password (min 8 characters)"
+                        value={newPassword}
+                        onChange={(e) => {
+                          setNewPassword(e.target.value);
+                          markUnsaved();
+                        }}
+                        className="w-full rounded-md border border-border bg-elevated px-3 py-2 text-text-primary placeholder-text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                      />
+                      <input
+                        type="password"
+                        placeholder="Confirm new password"
+                        value={confirmPassword}
+                        onChange={(e) => {
+                          setConfirmPassword(e.target.value);
+                          markUnsaved();
+                        }}
+                        className="w-full rounded-md border border-border bg-elevated px-3 py-2 text-text-primary placeholder-text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                      />
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-text-secondary mb-2">
-                    Preferred setup types
-                  </label>
-                  <p className="text-xs text-text-muted mb-2">
-                    This helps pre-fill the setup type when adding trades.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {SETUP_TYPE_OPTIONS.map((setup) => (
-                      <label
-                        key={setup}
-                        className="inline-flex items-center gap-2 rounded-md border border-border bg-elevated px-3 py-2 cursor-pointer hover:bg-elevated/80"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={preferredSetups.includes(setup)}
-                          onChange={() => toggleSetup(setup)}
-                          className="rounded border-border text-accent focus:ring-accent"
-                        />
-                        <span className="text-sm text-text-primary">{setup}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <Button type="submit" variant="secondary" loading={prefsSaving} disabled={prefsSaving}>
-                  Save Preferences
-                </Button>
-              </form>
-            </CardBody>
-          </Card>
-
-          {/* Data & Privacy */}
-          <Card>
-            <CardHeader title="Data & Privacy" subtitle="Export or delete your data" />
-            <CardBody className="space-y-6">
-              <div>
-                <p className="text-sm text-text-secondary mb-2">Download all your trades as a CSV file.</p>
-                <Button
-                  variant="secondary"
-                  size="md"
-                  onClick={handleExportCsv}
-                  loading={exportLoading}
-                  disabled={exportLoading}
-                >
-                  Export all my trades as CSV
-                </Button>
-              </div>
-              <div className="rounded-lg border-2 border-loss/30 bg-loss/5 p-4">
-                <p className="text-sm font-medium text-loss mb-1">Danger zone</p>
-                <p className="text-sm text-text-secondary mb-3">
-                  Permanently delete your account and all trades, imports and uploaded files. This cannot be undone.
-                </p>
-                <Button variant="danger" size="md" onClick={() => setDeleteModalOpen(true)}>
-                  Delete my account
-                </Button>
-              </div>
-            </CardBody>
-          </Card>
-
-          {/* Plan */}
-          <Card>
-            <CardHeader title="Plan" subtitle="Your current subscription" />
-            <CardBody className="space-y-4">
-              <div className="flex items-center gap-3">
-                <span
-                  className={`inline-flex rounded-md border px-3 py-1 text-sm font-medium ${
-                    user.plan === 'pro'
-                      ? 'bg-accent/15 text-accent border-accent/30'
-                      : 'bg-elevated text-text-secondary border-border'
-                  }`}
-                >
-                  {user.plan === 'pro' ? 'Pro' : 'Free'}
-                </span>
-              </div>
-              {user.plan === 'free' ? (
-                <div className="rounded-lg border border-border bg-elevated/50 p-4 space-y-3">
-                  <p className="text-sm font-medium text-text-primary">Upgrade to Pro</p>
-                  <ul className="text-sm text-text-secondary list-disc list-inside space-y-1">
-                    <li>Unlimited trades (Free: 100 trades max)</li>
-                    <li>Priority support</li>
-                    <li>Advanced analytics</li>
-                    <li>CSV export</li>
-                  </ul>
-                  <p className="text-xs text-text-muted">Coming soon — Razorpay integration</p>
-                </div>
-              ) : (
-                <div className="text-sm text-text-secondary">
-                  <p>Renewal date: —</p>
-                  <Button variant="ghost" size="sm" className="mt-2" disabled>
-                    Manage subscription
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setPasswordOpen((v) => !v);
+                      if (passwordOpen) {
+                        setCurrentPassword('');
+                        setNewPassword('');
+                        setConfirmPassword('');
+                      }
+                      markUnsaved();
+                    }}
+                  >
+                    {passwordOpen ? 'Cancel password change' : 'Change password'}
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    loading={profileSaving}
+                    disabled={profileSaving || !hasProfileChanges}
+                  >
+                    Save Changes
                   </Button>
                 </div>
-              )}
-            </CardBody>
-          </Card>
+                </form>
+              </CardBody>
+            </Card>
+
+            {/* Data & Privacy */}
+            <Card>
+              <CardHeader title="Data & Privacy" subtitle="Export or delete your data" />
+              <CardBody className="space-y-6">
+                <div className="rounded-xl border border-border bg-elevated/30 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-dim text-accent">
+                      <Download className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-text-primary">Export</p>
+                      <p className="mt-1 text-sm text-text-secondary">
+                        Download all your trades as a CSV file.
+                      </p>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <Button
+                      variant="secondary"
+                      size="md"
+                      onClick={handleExportCsv}
+                      loading={exportLoading}
+                      disabled={exportLoading}
+                      className="border border-border hover:border-accent/40"
+                    >
+                      Export all my trades as CSV
+                    </Button>
+                    <span className="text-xs text-text-muted">Exports up to your latest trades.</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-[rgba(239,68,68,0.40)] bg-[rgba(239,68,68,0.08)] p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-loss/15 text-loss">
+                      <span className="text-lg font-semibold leading-none">!</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-loss">Danger zone</p>
+                      <p className="mt-1 text-sm text-text-secondary">
+                        Permanently delete your account and all trades, imports and uploaded files. This cannot be undone.
+                      </p>
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                        <Button
+                          variant="danger"
+                          size="md"
+                          onClick={() => setDeleteModalOpen(true)}
+                          className="border-[rgba(239,68,68,0.45)] bg-[rgba(239,68,68,0.14)] text-[rgb(239,68,68)] hover:bg-[rgba(239,68,68,0.20)]"
+                        >
+                          Delete my account
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardBody>
+            </Card>
+          </div>
         </div>
       </div>
 

@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/layout/AppShell';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { TradeForm, type TradeFormValues } from '@/components/trades/TradeForm';
-import { SETUP_TYPE_OPTIONS, SECTOR_OPTIONS } from '@/components/trades/constants';
+import { SETUP_TYPE_OPTIONS } from '@/components/trades/constants';
 import { ErrorCard } from '@/components/ui/ErrorCard';
 import type { Trade } from '@/types/trade';
 import toast from 'react-hot-toast';
@@ -35,11 +35,8 @@ function tradeToDefaultValues(t: Trade): Partial<TradeFormValues> {
     t.direction as 'long' | 'short'
   );
   const setupRaw = (t.setupType || '').trim();
-  const sectorRaw = (t.sector || '').trim();
   const isSetupUnknown = !setupRaw || setupRaw === 'Unknown';
-  const isSectorUnknown = !sectorRaw || sectorRaw === 'Unknown';
   const setupInList = !isSetupUnknown && (SETUP_TYPE_OPTIONS as readonly string[]).includes(setupRaw);
-  const sectorInList = !isSectorUnknown && (SECTOR_OPTIONS as readonly string[]).includes(sectorRaw);
   return {
     symbol: t.symbol,
     direction: t.direction as 'long' | 'short',
@@ -52,8 +49,6 @@ function tradeToDefaultValues(t: Trade): Partial<TradeFormValues> {
     exitDate: t.exitDate ? t.exitDate.slice(0, 10) : '',
     setupType: isSetupUnknown ? '' : setupInList ? setupRaw : 'Other',
     setupTypeOther: isSetupUnknown || setupInList ? '' : setupRaw,
-    sector: isSectorUnknown ? '' : sectorInList ? sectorRaw : 'Other',
-    sectorOther: isSectorUnknown || sectorInList ? '' : sectorRaw,
     notes: t.notes || '',
     screenshotUrl: t.screenshotUrl ?? null,
     marketPulse: t.marketPulse ?? null,
@@ -88,9 +83,6 @@ function buildPayload(data: TradeFormValues) {
     exitDate,
     ...(data.setupType?.trim() && {
       setupType: data.setupType === 'Other' ? (data.setupTypeOther?.trim() || 'Other') : data.setupType.trim(),
-    }),
-    ...(data.sector?.trim() && {
-      sector: data.sector === 'Other' ? (data.sectorOther?.trim() || 'Other') : data.sector.trim(),
     }),
     ...(data.notes?.trim() && { notes: data.notes.trim() }),
     ...(data.screenshotUrl != null && data.screenshotUrl !== '' && { screenshotUrl: data.screenshotUrl.trim() }),

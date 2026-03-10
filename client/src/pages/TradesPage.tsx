@@ -18,6 +18,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import type { TradesResponse } from '@/types/trade';
 import {
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   ChevronUp,
   Columns3,
   Filter,
@@ -33,7 +37,7 @@ import toast from 'react-hot-toast';
 import 'react-datepicker/dist/react-datepicker.css';
 
 const TRADES_URL = '/api/trades';
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 const SORT_FIELDS = ['symbol', 'entryDate', 'exitDate', 'pnl', 'riskReward'] as const;
 const COLUMNS_STORAGE_KEY = 'trade-log-visible-columns';
 
@@ -48,7 +52,6 @@ const COLUMN_DEFS = [
   { id: 'portfolioPct', label: 'Portfolio %', defaultVisible: false, sortField: null },
   { id: 'riskReward', label: 'Reward:Risk', defaultVisible: true, sortField: 'riskReward' as const },
   { id: 'setupType', label: 'Setup', defaultVisible: false, sortField: null },
-  { id: 'sector', label: 'Sector', defaultVisible: false, sortField: null },
   { id: 'daysHold', label: 'Days hold', defaultVisible: false, sortField: null },
   { id: 'entryDate', label: 'Entry Date', defaultVisible: false, sortField: 'entryDate' as const },
   { id: 'exitDate', label: 'Exit Date', defaultVisible: false, sortField: 'exitDate' as const },
@@ -169,7 +172,7 @@ export function TradesPage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const portfolioAmount = user?.portfolioAmount ?? null;
-  const [filtersOpen, setFiltersOpen] = useState(true);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [columnsOpen, setColumnsOpen] = useState(false);
   const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(() => loadVisibleColumnIds());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -364,27 +367,72 @@ export function TradesPage() {
       />
       <div className="flex-1 overflow-auto p-6">
         <div className="mx-auto max-w-[1400px] space-y-4">
-          {/* Filter bar */}
-          <Card>
-            <CardBody className="py-3">
+          {/* Filters + Columns toolbar */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div />
+            <div className="relative flex gap-2" ref={columnsRef}>
               <button
                 type="button"
                 onClick={() => setFiltersOpen((o) => !o)}
-                className="flex w-full items-center justify-between gap-2 text-left"
+                className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                  filtersOpen
+                    ? 'border-accent bg-accent-dim text-accent'
+                    : 'border-border bg-surface text-text-primary hover:bg-elevated'
+                }`}
               >
-                <span className="flex items-center gap-2 text-sm font-medium text-text-primary">
-                  <Filter className="h-4 w-4 text-text-muted" />
-                  Filters
-                  {hasActiveFilters && (
-                    <span className="rounded bg-accent-dim px-1.5 py-0.5 text-xs text-accent">
-                      On
-                    </span>
-                  )}
-                </span>
-                <span className="text-text-muted">{filtersOpen ? '−' : '+'}</span>
+                <Filter className="h-4 w-4 text-text-muted" />
+                Filters
+                {hasActiveFilters && (
+                  <span className="rounded bg-accent/20 px-1.5 py-0.5 text-xs font-medium text-accent">
+                    On
+                  </span>
+                )}
               </button>
-              {filtersOpen && (
-                <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-border pt-3">
+            <button
+              type="button"
+              onClick={() => setColumnsOpen((o) => !o)}
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-text-primary hover:bg-elevated transition-colors"
+            >
+              <Columns3 className="h-4 w-4 text-text-muted" />
+              Columns
+            </button>
+            <button
+              type="button"
+              onClick={resetColumnsToDefault}
+              className="inline-flex items-center justify-center rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-text-secondary hover:bg-elevated hover:text-text-primary transition-colors"
+              aria-label="Reset columns to default"
+              title="Reset columns to default"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </button>
+            {columnsOpen && (
+              <div className="absolute right-0 top-full z-20 mt-1 w-60 rounded-lg border border-border bg-surface py-2 shadow-lg">
+                <div className="px-3 py-1.5 text-xs font-medium text-text-muted border-b border-border">
+                  Show columns
+                </div>
+                <div className="max-h-72 overflow-y-auto px-1">
+                  {COLUMN_DEFS.map((col) => (
+                    <button
+                      key={col.id}
+                      type="button"
+                      onClick={() => toggleColumn(col.id)}
+                      className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-sm text-text-primary hover:bg-elevated"
+                    >
+                      <Checkbox checked={visibleColumnIds.includes(col.id)} className="pointer-events-none" />
+                      {col.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            </div>
+          </div>
+
+          {/* Collapsible filter panel */}
+          {filtersOpen && (
+            <Card>
+              <CardBody className="py-3">
+                <div className="flex flex-wrap items-end gap-3">
                   <div className="min-w-[120px]">
                     <label className="block text-xs text-text-muted mb-1">Symbol</label>
                     <input
@@ -429,7 +477,7 @@ export function TradesPage() {
                                   ? 'bg-profit text-white'
                                   : opt.value === 'short'
                                     ? 'bg-loss text-white'
-                                    : 'bg-accent text-[#0a0a0f]'
+                                    : 'bg-accent text-accent-foreground'
                                 : 'text-text-muted hover:text-text-primary'
                             }`}
                           >
@@ -471,50 +519,9 @@ export function TradesPage() {
                     </Button>
                   )}
                 </div>
-              )}
-            </CardBody>
-          </Card>
-
-          {/* Column visibility */}
-          <div className="relative flex justify-end gap-2" ref={columnsRef}>
-            <button
-              type="button"
-              onClick={() => setColumnsOpen((o) => !o)}
-              className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-text-primary hover:bg-elevated transition-colors"
-            >
-              <Columns3 className="h-4 w-4 text-text-muted" />
-              Columns
-            </button>
-            <button
-              type="button"
-              onClick={resetColumnsToDefault}
-              className="inline-flex items-center justify-center rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-text-secondary hover:bg-elevated hover:text-text-primary transition-colors"
-              aria-label="Reset columns to default"
-              title="Reset columns to default"
-            >
-              <RotateCcw className="h-4 w-4" />
-            </button>
-            {columnsOpen && (
-              <div className="absolute right-0 top-full z-20 mt-1 w-60 rounded-lg border border-border bg-surface py-2 shadow-lg">
-                <div className="px-3 py-1.5 text-xs font-medium text-text-muted border-b border-border">
-                  Show columns
-                </div>
-                <div className="max-h-72 overflow-y-auto px-1">
-                  {COLUMN_DEFS.map((col) => (
-                    <button
-                      key={col.id}
-                      type="button"
-                      onClick={() => toggleColumn(col.id)}
-                      className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-sm text-text-primary hover:bg-elevated"
-                    >
-                      <Checkbox checked={visibleColumnIds.includes(col.id)} className="pointer-events-none" />
-                      {col.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+              </CardBody>
+            </Card>
+          )}
 
           {/* Bulk delete bar */}
           {selectedIds.size > 0 && (
@@ -699,14 +706,7 @@ export function TradesPage() {
                             switch (col.id) {
                               case 'symbol':
                                 content = (
-                                  <span className="inline-flex items-center gap-2">
-                                    <span className="font-mono font-semibold text-text-primary">{t.symbol}</span>
-                                    {t.outcome === 'open' || t.outcome == null ? (
-                                      <span className="rounded-full border border-border bg-elevated px-2 py-0.5 text-[10px] font-medium text-text-muted">
-                                        OPEN
-                                      </span>
-                                    ) : null}
-                                  </span>
+                                  <span className="font-mono font-semibold text-text-primary">{t.symbol}</span>
                                 );
                                 break;
                               case 'direction':
@@ -780,10 +780,11 @@ export function TradesPage() {
                                 );
                                 break;
                               case 'setupType':
-                                content = <span className="text-text-secondary truncate max-w-[80px] block">{t.setupType && t.setupType !== 'Unknown' ? t.setupType : '—'}</span>;
-                                break;
-                              case 'sector':
-                                content = <span className="text-text-secondary truncate max-w-[80px] block">{t.sector && t.sector !== 'Unknown' ? t.sector : '—'}</span>;
+                                content = (
+                                  <span className="text-text-secondary truncate max-w-[80px] block">
+                                    {t.setupType && t.setupType.trim() ? t.setupType : '—'}
+                                  </span>
+                                );
                                 break;
                               case 'daysHold':
                                 content = (
@@ -822,52 +823,88 @@ export function TradesPage() {
               </div>
 
               {/* Pagination */}
-              <div className="flex flex-wrap items-center justify-between gap-3">
+              <nav
+                className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-elevated/50 px-4 py-3"
+                aria-label="Trade log pagination"
+              >
                 <p className="text-sm text-text-secondary">
-                  Showing <span className="font-mono text-text-primary">{start}–{end}</span> of{' '}
-                  <span className="font-mono text-text-primary">{total}</span> trades
+                  Showing <span className="font-mono font-medium text-text-primary">{start}–{end}</span> of{' '}
+                  <span className="font-mono font-medium text-text-primary">{total}</span> trades
                 </p>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setParam('page', String(page - 1))}
-                    disabled={page <= 1}
-                  >
-                    Prev
-                  </Button>
-                  {(() => {
-                    const pages: number[] = [];
-                    let lo = Math.max(1, page - 2);
-                    let hi = Math.min(totalPages, page + 2);
-                    if (hi - lo < 4) {
-                      if (lo === 1) hi = Math.min(totalPages, 5);
-                      else hi = Math.min(totalPages, lo + 4);
-                      lo = Math.max(1, hi - 4);
-                    }
-                    for (let p = lo; p <= hi; p++) pages.push(p);
-                    return pages.map((p) => (
-                      <Button
-                        key={p}
-                        variant={p === page ? 'primary' : 'ghost'}
-                        size="sm"
-                        className="min-w-[2rem]"
-                        onClick={() => setParam('page', String(p))}
-                      >
-                        {p}
-                      </Button>
-                    ));
-                  })()}
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setParam('page', String(page + 1))}
-                    disabled={page >= totalPages}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setParam('page', '1')}
+                      disabled={page <= 1}
+                      aria-label="First page"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-transparent text-text-muted transition-colors hover:bg-elevated hover:text-text-primary disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      <ChevronsLeft className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setParam('page', String(page - 1))}
+                      disabled={page <= 1}
+                      aria-label="Previous page"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-transparent text-text-muted transition-colors hover:bg-elevated hover:text-text-primary disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <span className="mx-1 h-6 w-px bg-border" aria-hidden />
+                    {(() => {
+                      const nums = new Set<number>([1, totalPages, page, page - 1, page + 1]);
+                      const sorted = Array.from(nums).filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a - b);
+                      const withEllipsis: (number | 'ellipsis')[] = [];
+                      for (let i = 0; i < sorted.length; i++) {
+                        if (i > 0 && sorted[i]! - sorted[i - 1]! > 1) withEllipsis.push('ellipsis');
+                        withEllipsis.push(sorted[i]!);
+                      }
+                      return withEllipsis.map((item, i) =>
+                        item === 'ellipsis' ? (
+                          <span key={`e-${i}`} className="flex h-9 w-9 items-center justify-center text-text-muted" aria-hidden>
+                            …
+                          </span>
+                        ) : (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => setParam('page', String(item))}
+                            aria-label={item === page ? `Current page, ${item}` : `Go to page ${item}`}
+                            aria-current={item === page ? 'page' : undefined}
+                            className={`inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-lg border px-2 text-sm font-medium transition-colors ${
+                              item === page
+                                ? 'border-accent bg-accent/15 text-accent'
+                                : 'border-transparent text-text-secondary hover:bg-elevated hover:text-text-primary'
+                            }`}
+                          >
+                            {item}
+                          </button>
+                        )
+                      );
+                    })()}
+                    <span className="mx-1 h-6 w-px bg-border" aria-hidden />
+                    <button
+                      type="button"
+                      onClick={() => setParam('page', String(page + 1))}
+                      disabled={page >= totalPages}
+                      aria-label="Next page"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-transparent text-text-muted transition-colors hover:bg-elevated hover:text-text-primary disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setParam('page', String(totalPages))}
+                      disabled={page >= totalPages}
+                      aria-label="Last page"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-transparent text-text-muted transition-colors hover:bg-elevated hover:text-text-primary disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      <ChevronsRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+              </nav>
             </>
           )}
         </div>

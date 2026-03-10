@@ -131,72 +131,92 @@ function DashboardContent({ data }: { data: DashboardStats }) {
       : null;
 
   return (
-    <div className="space-y-6">
-      {/* Top row: 4 stat cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardBody>
-            <p className="text-sm font-medium text-text-secondary">Total P&L</p>
-            <div className="mt-1 flex items-center gap-2">
-              {data.totalPnl >= 0 ? (
-                <TrendingUp className="h-5 w-5 shrink-0 text-profit" />
-              ) : (
-                <TrendingDown className="h-5 w-5 shrink-0 text-loss" />
-              )}
-              <span
-                className={`font-mono text-2xl font-semibold tabular-nums ${
-                  data.totalPnl >= 0 ? 'text-profit' : 'text-loss'
-                }`}
-              >
-                {data.totalPnl >= 0 ? '' : '-'}
-                {formatCurrencyWhole(Math.abs(totalPnlDisplay))}
-              </span>
+    <div className="space-y-7">
+      {/* At a glance */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-medium tracking-wide text-text-muted">AT A GLANCE</p>
+          <h2 className="mt-1 text-base font-semibold text-text-primary">Your performance snapshot</h2>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        {/* Total P&L - hero card */}
+        <Card className="lg:col-span-5 overflow-hidden flex">
+          <CardBody className="relative flex-1">
+            <div className="absolute inset-0 bg-elevated/40" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,var(--accent-dim),transparent_45%),radial-gradient(circle_at_85%_30%,rgba(239,68,68,0.10),transparent_45%)]" />
+            <div className="relative">
+              <p className="text-sm font-medium text-text-secondary">Total P&L</p>
+              <div className="mt-2 flex items-center gap-2">
+                {data.totalPnl >= 0 ? (
+                  <TrendingUp className="h-5 w-5 shrink-0 text-profit" />
+                ) : (
+                  <TrendingDown className="h-5 w-5 shrink-0 text-loss" />
+                )}
+                <span
+                  className={`font-mono text-3xl font-semibold tabular-nums ${
+                    data.totalPnl >= 0 ? 'text-profit' : 'text-loss'
+                  }`}
+                >
+                  {data.totalPnl >= 0 ? '' : '-'}
+                  {formatCurrencyWhole(Math.abs(totalPnlDisplay))}
+                </span>
+              </div>
             </div>
           </CardBody>
         </Card>
 
-        <Card>
+        {/* Win rate */}
+        <Card className="lg:col-span-3">
           <CardBody>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-medium text-text-secondary">Win Rate</p>
-                <p className="mt-1 font-mono text-2xl font-semibold tabular-nums text-text-primary">
+                <p className="text-sm font-medium text-text-secondary">Win rate</p>
+                <p className="mt-2 font-mono text-3xl font-semibold tabular-nums text-text-primary">
                   {formatPercent(winRateDisplay)}
                 </p>
               </div>
-              <WinRateRing value={data.winRate} />
+              <WinRateRing value={data.winRate} size={46} />
             </div>
           </CardBody>
         </Card>
 
-        <Card>
+        {/* Total trades */}
+        <Card className="lg:col-span-2">
           <CardBody>
-            <p className="text-sm font-medium text-text-secondary">Total Trades</p>
-            <p className="mt-1 font-mono text-2xl font-semibold tabular-nums text-text-primary">
+            <p className="text-sm font-medium text-text-secondary">Total trades</p>
+            <p className="mt-2 font-mono text-3xl font-semibold tabular-nums text-text-primary">
               {totalTradesDisplay}
             </p>
-            {data.openTrades > 0 && (
-              <p className="mt-0.5 text-xs text-text-muted">{data.openTrades} open</p>
-            )}
+            <p className="mt-1 text-xs text-text-muted">
+              {data.openTrades > 0 ? `${data.openTrades} open` : 'All closed'}
+            </p>
           </CardBody>
         </Card>
 
-        <Card>
+        {/* Avg RR */}
+        <Card className="lg:col-span-2">
           <CardBody>
             <p className="text-sm font-medium text-text-secondary">Avg Reward:Risk</p>
-            <p className="mt-1 font-mono text-2xl font-semibold tabular-nums text-text-primary">
+            <p className="mt-2 font-mono text-3xl font-semibold tabular-nums text-text-primary">
               {data.totalTrades > 0 ? avgRRDisplay.toFixed(2) : '—'}
             </p>
           </CardBody>
         </Card>
       </div>
 
-      {/* Second row: Open Risk, Expectancy, Max Drawdown, Avg Holding Time */}
+      {/* Risk & discipline */}
+      <div>
+        <p className="text-xs font-medium tracking-wide text-text-muted">RISK & DISCIPLINE</p>
+        <h3 className="mt-1 text-base font-semibold text-text-primary">Keep the guardrails visible</h3>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardBody>
             <p className="text-sm font-medium text-text-secondary">Total open risk</p>
-            <div className="mt-1 flex items-start gap-2">
+            <div className="mt-2 flex items-start gap-2">
               {data.openTrades > 0 && (
                 <AlertTriangle className="h-5 w-5 shrink-0 text-warning mt-0.5" aria-hidden />
               )}
@@ -219,31 +239,35 @@ function DashboardContent({ data }: { data: DashboardStats }) {
             </div>
           </CardBody>
         </Card>
+
         <Card>
           <CardBody>
             <p className="text-sm font-medium text-text-secondary">Expectancy</p>
             <p
-              className={`mt-1 font-mono text-2xl font-semibold tabular-nums ${
+              className={`mt-2 font-mono text-2xl font-semibold tabular-nums ${
                 data.expectancy >= 0 ? 'text-profit' : 'text-loss'
               }`}
             >
               {data.totalTrades > 0 ? formatCurrencyWhole(data.expectancy) : '—'}
             </p>
-            <p className="mt-0.5 text-xs text-text-muted">Per trade</p>
+            <p className="mt-1 text-xs text-text-muted">Per trade</p>
           </CardBody>
         </Card>
+
         <Card>
           <CardBody>
             <p className="text-sm font-medium text-text-secondary">Max drawdown</p>
-            <p className="mt-1 font-mono text-2xl font-semibold tabular-nums text-loss">
+            <p className="mt-2 font-mono text-2xl font-semibold tabular-nums text-loss">
               {data.totalTrades > 0 ? formatCurrencyWhole(data.maxDrawdown) : '—'}
             </p>
+            <p className="mt-1 text-xs text-text-muted">Closed trade equity curve</p>
           </CardBody>
         </Card>
+
         <Card>
           <CardBody>
             <p className="text-sm font-medium text-text-secondary">Avg holding time</p>
-            <p className="mt-1 font-mono text-2xl font-semibold tabular-nums text-text-primary">
+            <p className="mt-2 font-mono text-2xl font-semibold tabular-nums text-text-primary">
               {data.totalTrades > 0
                 ? data.avgHoldingTimeDays >= 1
                   ? `${data.avgHoldingTimeDays.toFixed(1)} days`
@@ -253,8 +277,6 @@ function DashboardContent({ data }: { data: DashboardStats }) {
           </CardBody>
         </Card>
       </div>
-
-      {/* Removed: Equity curve, streak, win rate by market environment, P&L by setup, P&L by sector */}
     </div>
   );
 }

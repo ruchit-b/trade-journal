@@ -9,15 +9,15 @@ import { Spinner } from '@/components/ui/Spinner';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { RegisterPage } from '@/pages/auth/RegisterPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
+import { useAuth } from '@/contexts/AuthContext';
 
 const DashboardPage = lazy(() => import('@/pages/DashboardPage').then((m) => ({ default: m.DashboardPage })));
 const TradesPage = lazy(() => import('@/pages/TradesPage').then((m) => ({ default: m.TradesPage })));
 const AddTradePage = lazy(() => import('@/pages/AddTradePage').then((m) => ({ default: m.AddTradePage })));
 const EditTradePage = lazy(() => import('@/pages/EditTradePage').then((m) => ({ default: m.EditTradePage })));
 const TradeDetailPage = lazy(() => import('@/pages/TradeDetailPage').then((m) => ({ default: m.TradeDetailPage })));
-const AnalyticsPage = lazy(() => import('@/pages/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage })));
-const ImportPage = lazy(() => import('@/pages/ImportPage').then((m) => ({ default: m.ImportPage })));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+const LandingPage = lazy(() => import('@/pages/LandingPage').then((m) => ({ default: m.LandingPage })));
 
 function PageFallback() {
   return (
@@ -35,12 +35,29 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
+function LandingRoute() {
+  const { user, isLoading } = useAuth();
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center bg-base">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+  if (user) return <Navigate to="/dashboard" replace />;
+  return (
+    <Suspense fallback={<PageFallback />}>
+      <LandingPage />
+    </Suspense>
+  );
+}
+
 function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<LandingRoute />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route
@@ -89,26 +106,6 @@ function App() {
               <AuthenticatedLayout>
                 <Suspense fallback={<PageFallback />}>
                   <AddTradePage />
-                </Suspense>
-              </AuthenticatedLayout>
-            }
-          />
-          <Route
-            path="/analytics"
-            element={
-              <AuthenticatedLayout>
-                <Suspense fallback={<PageFallback />}>
-                  <AnalyticsPage />
-                </Suspense>
-              </AuthenticatedLayout>
-            }
-          />
-          <Route
-            path="/import"
-            element={
-              <AuthenticatedLayout>
-                <Suspense fallback={<PageFallback />}>
-                  <ImportPage />
                 </Suspense>
               </AuthenticatedLayout>
             }

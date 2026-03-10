@@ -15,8 +15,7 @@ export interface ParsedTrade {
   exitDate: Date;
   stopLoss: number;
   target: number;
-  setupType: string;
-  sector: string;
+  setupType: string | null;
   notes: string;
 }
 
@@ -204,8 +203,7 @@ function fifoMatchZerodha(rows: ZerodhaRow[]): ParsedTrade[] {
         exitDate: exitD,
         stopLoss: entryPrice,
         target: entryPrice,
-        setupType: 'Unknown',
-        sector: 'Unknown',
+        setupType: null,
         notes: 'Imported from Zerodha',
       });
       buySum -= entryPrice * matchQty;
@@ -314,8 +312,7 @@ function fifoMatchUpstox(rows: UpstoxRow[]): ParsedTrade[] {
         exitDate: exitD,
         stopLoss: entryPrice,
         target: entryPrice,
-        setupType: 'Unknown',
-        sector: 'Unknown',
+        setupType: null,
         notes: 'Imported from Upstox',
       });
       buySum -= entryPrice * matchQty;
@@ -370,8 +367,7 @@ export function parseGeneric(csvRaw: string): { trades: ParsedTrade[]; errors: s
       exitDate,
       stopLoss: entryPrice,
       target: entryPrice,
-      setupType: getColumn(row, headers, 'setup_type') || 'Unknown',
-      sector: getColumn(row, headers, 'sector') || 'Unknown',
+      setupType: (getColumn(row, headers, 'setup_type') || '').trim() || null,
       notes: getColumn(row, headers, 'notes') || '',
     });
   }

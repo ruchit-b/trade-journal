@@ -13,6 +13,7 @@ export default {
         border: 'var(--border)',
         'border-subtle': 'var(--border-subtle)',
         accent: 'var(--accent)',
+        'accent-foreground': 'var(--accent-foreground)',
         'accent-dim': 'var(--accent-dim)',
         'text-primary': 'var(--text-primary)',
         'text-secondary': 'var(--text-secondary)',

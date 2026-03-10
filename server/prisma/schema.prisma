@@ -37,8 +37,7 @@ model Trade {
   exitDate        DateTime?
   stopLoss        Decimal   @db.Decimal(18, 4)
   target          Decimal   @db.Decimal(18, 4)
-  setupType       String
-  sector          String
+  setupType       String?
   notes           String    @default("")
   screenshotUrl   String?
   pnl             Decimal?  @db.Decimal(18, 4)

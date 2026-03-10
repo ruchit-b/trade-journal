@@ -9,7 +9,7 @@ const Checkbox = React.forwardRef<
   <CheckboxPrimitive.Root
     ref={ref}
     checked={checked}
-    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 border-border bg-elevated text-accent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-base data-[state=checked]:border-accent data-[state=checked]:bg-accent data-[state=checked]:text-[#0a0a0f] data-[state=indeterminate]:border-accent data-[state=indeterminate]:bg-accent data-[state=indeterminate]:text-[#0a0a0f] disabled:opacity-50 ${className}`}
+    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 border-border bg-elevated text-accent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-base data-[state=checked]:border-accent data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground data-[state=indeterminate]:border-accent data-[state=indeterminate]:bg-accent data-[state=indeterminate]:text-accent-foreground disabled:opacity-50 ${className}`}
     {...props}
   >
     <CheckboxPrimitive.Indicator className="flex items-center justify-center text-current">

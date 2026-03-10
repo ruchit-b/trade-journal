@@ -6,7 +6,7 @@ type ButtonSize = 'sm' | 'md' | 'lg';
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-accent text-[#0a0a0f] hover:bg-accent/90 focus-visible:ring-accent border-transparent',
+    'bg-accent text-accent-foreground hover:bg-accent/90 focus-visible:ring-accent border-transparent',
   secondary:
     'bg-elevated text-text-primary border-border hover:bg-elevated/80 focus-visible:ring-border',
   ghost:
