@@ -45,12 +45,13 @@ app.use((_req, res) => {
   });
 });
 
-/** Global error handler – log and return 500 */
+/** Global error handler – log and return 500; hide details in production */
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('Unhandled error:', err);
+  const isProd = process.env.NODE_ENV === 'production';
   res.status(500).json({
     success: false,
-    error: 'Something went wrong. Please try again.',
+    error: isProd ? 'Something went wrong. Please try again.' : (err.message ?? 'Something went wrong. Please try again.'),
   });
 });
 
