@@ -83,6 +83,7 @@ export function TradeDetailPage() {
   const queryClient = useQueryClient();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const { data: trade, isLoading, error, refetch } = useQuery({
     queryKey: ['trade', id],
